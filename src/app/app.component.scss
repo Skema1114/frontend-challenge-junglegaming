@@ -1,0 +1,293 @@
+.ops-shell {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 14px 18px 28px;
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.brand-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.brand-env {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.switch-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-muted);
+  cursor: pointer;
+
+  label {
+    cursor: pointer;
+  }
+}
+
+.telemetry-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  margin: 10px 0;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.telemetry-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.t-label {
+  color: var(--ink-muted);
+}
+
+.t-badge {
+  background: var(--badge-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11.5px;
+}
+
+.wallet-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.wallet-balance-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.wallet-balance {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.wallet-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.wallet-empty {
+  color: var(--ink-muted);
+}
+
+.wallet-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-wallet-notice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: var(--subtle-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.ops-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.span-4 {
+  grid-column: span 4;
+}
+
+.span-6 {
+  grid-column: span 6;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+
+  label {
+    font-size: 12px;
+    color: var(--ink-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dialog-row {
+  display: flex;
+  gap: 10px;
+}
+
+.dialog-currency {
+  flex: 0 0 90px;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.outcome-card {
+  background: var(--subtle-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.outcome-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.outcome-tags,
+.outcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.json-pre {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink);
+  overflow-x: auto;
+}
+
+.small-cell {
+  font-size: 12px;
+}
+
+.empty-cell {
+  text-align: center;
+  color: var(--ink-muted);
+  padding: 20px;
+}
+
+.ledger-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.sim-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sim-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-summary {
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+
+.lookup-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.muted {
+  color: var(--ink-muted);
+}
+
+@media (max-width: 1080px) {
+  .ops-grid,
+  .sim-cards-grid,
+  .form-grid,
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .span-2,
+  .span-4,
+  .span-6 {
+    grid-column: span 1;
+  }
+}

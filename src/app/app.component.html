@@ -1,0 +1,488 @@
+<p-toast position="top-right" />
+
+<p-dialog
+  header="Nova carteira"
+  [(visible)]="createDialogVisible"
+  [modal]="true"
+  [style]="{ width: '420px' }"
+>
+  <div class="dialog-form">
+    <div class="field">
+      <label>Player ID</label>
+      <input pInputText [(ngModel)]="newPlayerId" placeholder="jogador-demo" />
+    </div>
+    <div class="dialog-row">
+      <div class="field">
+        <label>Saldo inicial</label>
+        <input pInputText [(ngModel)]="newInitialAmount" class="mono" placeholder="100.00" />
+      </div>
+      <div class="field dialog-currency">
+        <label>Moeda</label>
+        <input pInputText [(ngModel)]="newCurrency" class="mono" maxlength="3" />
+      </div>
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <p-button label="Cancelar" [text]="true" severity="secondary" (onClick)="createDialogVisible = false" />
+    <p-button label="Criar carteira" icon="pi pi-check" [loading]="loadingWallet()" (onClick)="createWallet(false)" />
+  </ng-template>
+</p-dialog>
+
+<div class="ops-shell">
+  <p-toolbar>
+    <ng-template pTemplate="left">
+      <div class="brand-wrap">
+        <span class="brand-title">Painel de Apostas</span>
+        <span class="brand-env mono">localhost:3100</span>
+      </div>
+    </ng-template>
+
+    <ng-template pTemplate="right">
+      <div class="toolbar-actions">
+        @if (health(); as h) {
+          <p-tag
+            [value]="'Postgres: ' + h.checks.postgres"
+            [severity]="h.checks.postgres === 'up' ? 'success' : 'danger'"
+          />
+          <p-tag
+            [value]="'SQS: ' + h.checks.sqs"
+            [severity]="h.checks.sqs === 'up' ? 'success' : 'danger'"
+          />
+        } @else {
+          <p-tag value="Conectando" severity="warning" />
+        }
+
+        <div class="switch-wrap">
+          <p-inputSwitch [(ngModel)]="darkMode" inputId="darkThemeToggle" (onChange)="onThemeToggle()" />
+          <label for="darkThemeToggle">Tema escuro</label>
+        </div>
+
+        <div class="switch-wrap">
+          <p-inputSwitch [(ngModel)]="autoRefresh" inputId="autopoll" />
+          <label for="autopoll">Atualizar a cada 3s</label>
+        </div>
+
+        <p-button
+          icon="pi pi-refresh"
+          [text]="true"
+          size="small"
+          (onClick)="refreshTelemetry()"
+          title="Atualizar agora"
+        />
+      </div>
+    </ng-template>
+  </p-toolbar>
+
+  @if (metrics(); as m) {
+    <div class="telemetry-strip">
+      <div class="telemetry-item">
+        <span class="t-label">Status:</span>
+        @for (entry of statusEntries(); track entry[0]) {
+          <span class="t-badge mono">{{ entry[0] }}={{ entry[1] }}</span>
+        } @empty {
+          <span class="muted">sem registros</span>
+        }
+      </div>
+      <div class="telemetry-item mono">
+        <span class="t-label">Duplicadas:</span> {{ m.duplicatesDetected }}
+      </div>
+      <div class="telemetry-item mono">
+        <span class="t-label">Conflitos de lock:</span> {{ m.lockConflicts }}
+      </div>
+      <div class="telemetry-item mono">
+        <span class="t-label">Outbox:</span> {{ m.outboxPendingCount }} pendentes ({{ m.outboxLagMs }}ms)
+      </div>
+      <div class="telemetry-item mono">
+        <span class="t-label">Latência:</span> {{ m.latency.avgMs }}ms méd / {{ m.latency.maxMs }}ms máx
+      </div>
+    </div>
+  }
+
+  <p-card styleClass="wallet-bar-card">
+    <div class="wallet-bar">
+      <div class="wallet-left">
+        @if (activeWallet(); as w) {
+          <div class="wallet-balance-row">
+            <span class="wallet-balance mono">{{ w.balance.amount }} {{ w.balance.currency }}</span>
+            <p-tag [value]="'v' + w.version" severity="info" />
+            @if (reconciliation(); as rec) {
+              <p-tag
+                [value]="rec.consistent ? 'Consistente (' + rec.checkedEntries + ' lançamentos)' : 'Divergência: ' + rec.difference.amount"
+                [severity]="rec.consistent ? 'success' : 'danger'"
+              />
+            }
+          </div>
+          <div class="wallet-meta mono">
+            <span>Jogador: <strong>{{ w.playerId }}</strong></span>
+            <span>ID: {{ w.id }}</span>
+            <p-button
+              icon="pi pi-copy"
+              [text]="true"
+              size="small"
+              (onClick)="copyWalletId(w.id)"
+              title="Copiar ID da carteira"
+            />
+          </div>
+        } @else {
+          <div class="wallet-empty">
+            Nenhuma carteira selecionada. Crie uma nova ou carregue pelo UUID na aba <strong>Carteiras</strong>.
+          </div>
+        }
+      </div>
+
+      <div class="wallet-right">
+        @if (walletDropdownOptions().length > 0) {
+          <p-dropdown
+            [options]="walletDropdownOptions()"
+            [ngModel]="activeWallet()?.id"
+            (ngModelChange)="selectWallet($event, true)"
+            placeholder="Trocar carteira"
+            styleClass="wallet-select"
+          />
+        }
+        @if (activeWallet()) {
+          <p-button
+            label="Reconciliar"
+            icon="pi pi-check"
+            severity="secondary"
+            [outlined]="true"
+            [disabled]="loadingWallet()"
+            (onClick)="runReconciliation()"
+          />
+        }
+        <p-button
+          label="Nova carteira"
+          icon="pi pi-plus"
+          [loading]="loadingWallet()"
+          (onClick)="openCreateDialog()"
+        />
+      </div>
+    </div>
+  </p-card>
+
+  <p-tabView [(activeIndex)]="activeTabIndex">
+    <p-tabPanel header="Operações e Ledger">
+      <div class="ops-grid">
+        <p-card header="Enviar transação">
+          @if (!activeWallet()) {
+            <div class="empty-wallet-notice">
+              <span>Crie uma carteira antes de enviar transações.</span>
+              <p-button label="Criar carteira" severity="secondary" [outlined]="true" size="small" (onClick)="openCreateDialog()" />
+            </div>
+          }
+
+          <div class="form-grid">
+            <div class="field span-2">
+              <label>Tipo</label>
+              <p-dropdown [options]="kindOptions" [(ngModel)]="txKind" optionLabel="label" optionValue="value" />
+            </div>
+
+            <div class="field span-2">
+              <label>Valor</label>
+              <input pInputText [(ngModel)]="txAmount" class="mono" placeholder="25.00" />
+            </div>
+
+            <div class="field span-2">
+              <label>Moeda</label>
+              <input pInputText [(ngModel)]="txCurrency" class="mono" maxlength="3" />
+            </div>
+
+            <div class="field span-2">
+              <label>Provider ID</label>
+              <input pInputText [(ngModel)]="txProviderId" (ngModelChange)="syncIdempotencyKey()" />
+            </div>
+
+            <div class="field span-2">
+              <label>External Tx ID</label>
+              <input pInputText [(ngModel)]="txExternalId" class="mono" (ngModelChange)="syncIdempotencyKey()" />
+            </div>
+
+            <div class="field span-2">
+              <label>Round ID</label>
+              <input pInputText [(ngModel)]="txRoundId" class="mono" />
+            </div>
+
+            <div class="field span-4">
+              <label>Idempotency-Key</label>
+              <input pInputText [(ngModel)]="txIdempotencyKey" class="mono" />
+            </div>
+
+            <div class="field span-2">
+              <label>Game ID</label>
+              <input pInputText [(ngModel)]="txGameId" />
+            </div>
+
+            @if (showReferenceField()) {
+              <div class="field span-6">
+                <label>Referência externa</label>
+                <input pInputText [(ngModel)]="txReferenceExternalId" class="mono" placeholder="External Tx ID da transação original" />
+              </div>
+            }
+          </div>
+
+          <div class="btn-row">
+            <p-button
+              label="Enviar"
+              icon="pi pi-send"
+              [loading]="submittingTx()"
+              [disabled]="!activeWallet()"
+              (onClick)="submitTransaction()"
+            />
+            <p-button
+              label="Novo ID"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="regenerateIds()"
+            />
+          </div>
+
+          @if (lastOutcome(); as out) {
+            <p-divider />
+            <div class="outcome-card">
+              <div class="outcome-head">
+                <div class="outcome-tags">
+                  <p-tag [value]="'HTTP ' + out.httpStatus" [severity]="outcomeSeverity(out.httpStatus)" />
+                  <strong class="mono">{{ out.body.status ?? out.body.error ?? 'RESPOSTA' }}</strong>
+                  @if (out.body.idempotentReplay) {
+                    <p-tag value="replay" severity="info" />
+                  }
+                  <span class="muted mono">{{ out.durationMs }} ms</span>
+                </div>
+                @if (lastSentPayload()) {
+                  <div class="outcome-actions">
+                    <p-button
+                      label="Reenviar (replay)"
+                      severity="secondary"
+                      [outlined]="true"
+                      size="small"
+                      [disabled]="submittingTx()"
+                      (onClick)="replayLastTransaction()"
+                    />
+                    <p-button
+                      label="Conflito 409"
+                      severity="warning"
+                      [outlined]="true"
+                      size="small"
+                      [disabled]="submittingTx()"
+                      (onClick)="forceConflictWithLastKey()"
+                    />
+                  </div>
+                }
+              </div>
+              <pre class="mono json-pre">{{ out.body | json }}</pre>
+            </div>
+          }
+        </p-card>
+
+        <p-card header="Lançamentos no ledger">
+          <p-table
+            [value]="ledgerEntries()"
+            styleClass="p-datatable-sm p-datatable-striped"
+          >
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Tipo</th>
+                <th>Valor</th>
+                <th>Saldo</th>
+                <th>Transação</th>
+                <th></th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-item>
+              <tr>
+                <td>
+                  <p-tag
+                    [value]="item.direction"
+                    [severity]="item.direction === 'CREDIT' ? 'success' : 'warning'"
+                  />
+                </td>
+                <td class="mono">{{ item.money.amount }} {{ item.money.currency }}</td>
+                <td class="mono">{{ item.balanceBefore.amount }} -&gt; {{ item.balanceAfter.amount }}</td>
+                <td class="mono small-cell">{{ item.transactionId.slice(0, 12) }}...</td>
+                <td>
+                  <p-button
+                    label="Usar ref."
+                    [text]="true"
+                    size="small"
+                    (onClick)="useTransactionAsReference(item.transactionId)"
+                  />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="5" class="empty-cell">Sem lançamentos para exibir.</td>
+              </tr>
+            </ng-template>
+          </p-table>
+
+          <div class="ledger-footer">
+            @if (activeWallet(); as w) {
+              <p-button
+                label="Recarregar"
+                [text]="true"
+                size="small"
+                (onClick)="loadLedgerReset(w.id)"
+              />
+            }
+            @if (ledgerNextCursor()) {
+              <p-button
+                label="Próxima página"
+                severity="secondary"
+                [outlined]="true"
+                size="small"
+                (onClick)="loadNextLedgerPage()"
+              />
+            }
+          </div>
+        </p-card>
+      </div>
+    </p-tabPanel>
+
+    <p-tabPanel header="Testes de concorrência">
+      <div class="sim-cards-grid">
+        <p-card header="Saldo 100 vs 2x BET 80">
+          <p class="muted">
+            Abre carteira com 100.00 BRL e envia duas apostas de 80.00 BRL em paralelo.
+          </p>
+          <p-button
+            label="Executar"
+            [loading]="runningSimulation()"
+            (onClick)="runSimulation('race')"
+          />
+        </p-card>
+
+        <p-card header="Replay paralelo (25x)">
+          <p class="muted">
+            Envia 25 chamadas simultâneas com a mesma Idempotency-Key para confirmar débito único.
+          </p>
+          <p-button
+            label="Executar"
+            severity="secondary"
+            [outlined]="true"
+            [loading]="runningSimulation()"
+            (onClick)="runSimulation('idempotency')"
+          />
+        </p-card>
+
+        <p-card header="Refund antes da aposta">
+          <p class="muted">
+            Envia um REFUND antes da BET (202 PENDING_REFERENCE) e aguarda o worker concluir.
+          </p>
+          <p-button
+            label="Executar"
+            severity="secondary"
+            [outlined]="true"
+            [loading]="runningSimulation()"
+            (onClick)="runSimulation('outOfOrder')"
+          />
+        </p-card>
+      </div>
+
+      @for (rep of simulationReports(); track rep.id) {
+        <p-panel styleClass="sim-report-panel">
+          <ng-template pTemplate="header">
+            <div class="sim-panel-head">
+              <p-tag [value]="rep.passed ? 'OK' : 'FALHA'" [severity]="rep.passed ? 'success' : 'danger'" />
+              <strong>{{ rep.title }}</strong>
+              <span class="muted mono">{{ rep.durationMs }} ms</span>
+            </div>
+          </ng-template>
+          <p class="sim-summary">{{ rep.summary }}</p>
+          <p-table [value]="rep.steps" styleClass="p-datatable-sm">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Etapa</th>
+                <th>HTTP</th>
+                <th>Status</th>
+                <th>Detalhe</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-s>
+              <tr>
+                <td>{{ s.label }}</td>
+                <td class="mono">{{ s.httpStatus }}</td>
+                <td><p-tag [value]="s.status" [severity]="outcomeSeverity(s.httpStatus)" /></td>
+                <td class="mono">{{ s.detail }}</td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </p-panel>
+      }
+    </p-tabPanel>
+
+    <p-tabPanel header="Carteiras">
+      <div class="ops-grid">
+        <p-card header="Criar carteira">
+          <div class="form-grid-3">
+            <div class="field">
+              <label>Player ID</label>
+              <input pInputText [(ngModel)]="newPlayerId" placeholder="jogador-demo" />
+            </div>
+            <div class="field">
+              <label>Saldo inicial</label>
+              <input pInputText [(ngModel)]="newInitialAmount" class="mono" placeholder="100.00" />
+            </div>
+            <div class="field">
+              <label>Moeda</label>
+              <input pInputText [(ngModel)]="newCurrency" class="mono" maxlength="3" />
+            </div>
+          </div>
+          <p-button
+            label="Criar"
+            [loading]="loadingWallet()"
+            (onClick)="createWallet(true)"
+          />
+
+          <p-divider />
+
+          <div class="lookup-box">
+            <div class="field">
+              <label>Abrir por UUID</label>
+              <input pInputText [(ngModel)]="lookupWalletId" class="mono" placeholder="UUID da carteira" />
+            </div>
+            <p-button
+              label="Buscar"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="loadWalletById()"
+            />
+          </div>
+        </p-card>
+
+        <p-card header="Histórico local">
+          <p-table [value]="recentWallets()" styleClass="p-datatable-sm">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Player</th>
+                <th>Saldo</th>
+                <th>Versão</th>
+                <th></th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-rw>
+              <tr>
+                <td>{{ rw.playerId }}</td>
+                <td class="mono">{{ rw.balance.amount }} {{ rw.balance.currency }}</td>
+                <td class="mono">v{{ rw.version }}</td>
+                <td>
+                  <p-button
+                    label="Abrir"
+                    [text]="true"
+                    size="small"
+                    (onClick)="selectWallet(rw.id, true); activeTabIndex = 0"
+                  />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="4" class="empty-cell">Nenhuma carteira salva nesta sessão.</td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </p-card>
+      </div>
+    </p-tabPanel>
+  </p-tabView>
+</div>
