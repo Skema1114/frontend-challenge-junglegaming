@@ -6,9 +6,13 @@ O painel permite criar e buscar carteiras, reconciliar o saldo com o ledger e en
 
 ## Como rodar
 
-Suba o back-end em `http://localhost:3100` com PostgreSQL e LocalStack ativos, depois rode o servidor Angular na pasta deste projeto:
+Você precisa de Node.js (18.19+ ou superior) e do back-end (`backend-challenge-junglegaming`) rodando em `http://localhost:3100` com PostgreSQL e LocalStack ativos.
+
+Clone o repositório, instale as dependências e inicie o servidor Angular:
 
 ```bash
+git clone https://github.com/Skema1114/frontend-challenge-junglegaming.git
+cd frontend-challenge-junglegaming
 npm install
 npm start
 ```
